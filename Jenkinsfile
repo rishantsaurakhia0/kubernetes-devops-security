@@ -33,7 +33,7 @@ pipeline {
       }
      }
     } 
-    stage('OWASP Dependency Scan and Trivy scan') {
+    stage('OWASP Dependency Scan and Trivy scan, OPA Conftest') {
       steps {
         parallel(
           "Dependency Scan": {
