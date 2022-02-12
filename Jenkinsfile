@@ -10,7 +10,7 @@ pipeline {
       }
     }
 
-    stage('Unit Tests - JUnit and JaCoCo') {
+    stage('Unit Tests') {
       steps {
         sh "mvn test"
       }
@@ -21,7 +21,7 @@ pipeline {
         }
       }
     }
-    stage('SonarQube - SAST') {
+    stage('SonarQube(SAST)') {
       steps {
           withSonarQubeEnv('SonarQube') {
           sh "mvn sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.host.url=http://devsecops1-demo.eastus.cloudapp.azure.com:9000 -Dsonar.login=53d261294f9fe3b4069e3dec24607604001d1063"
@@ -33,7 +33,7 @@ pipeline {
       }
      }
     } 
-    stage('Vulnerability Scan - Docker ') {
+    stage('OWASP Dependency Scan') {
       steps {
           sh "mvn dependency-check:check"
       }
@@ -49,7 +49,7 @@ pipeline {
       }
     }
 
-    stage('Kubernetes Deployment - DEV') {
+    stage('Kubernetes Deployment - DEVELOPMENT') {
       steps {
         withKubeConfig([credentialsId: 'kubeconfig']) {
           sh "sed -i 's#replace#rishw/numeric-app:${GIT_COMMIT}#g' k8s_deployment_service.yaml"
