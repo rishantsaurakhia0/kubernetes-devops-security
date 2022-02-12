@@ -33,7 +33,7 @@ pipeline {
       }
      }
     } 
-    stage('OWASP Dependency Scan and Trivy scan, OPA Conftest') {
+    stage('OWASP Dependency Scan and Trivy scan') {
       steps {
         parallel(
           "Dependency Scan": {
@@ -52,7 +52,7 @@ pipeline {
       steps {
         withDockerRegistry([credentialsId: "docker-hub", url: ""]) {
           sh 'printenv'
-          sh 'docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
+          sh 'sudo docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
           sh 'docker push rishw/numeric-app:""$GIT_COMMIT""'
         }
       }
