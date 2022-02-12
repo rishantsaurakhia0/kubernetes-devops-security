@@ -37,7 +37,7 @@ pipeline {
       steps {
         parallel(
           "Dependency Scan": {
-          sh "mvn dependency-check:check"
+            sh "mvn dependency-check:check"
       },
       "Trivy Scan": {
         sh "bash trivy-docker-image-scan.sh"
@@ -49,7 +49,7 @@ pipeline {
       steps {
         withDockerRegistry([credentialsId: "docker-hub", url: ""]) {
           sh 'printenv'
-          sh 'docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
+          sh 'sudo docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
           sh 'docker push rishw/numeric-app:""$GIT_COMMIT""'
         }
       }
