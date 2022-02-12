@@ -33,12 +33,18 @@ pipeline {
       }
      }
     } 
-    stage('OWASP Dependency Scan') {
+    stage('OWASP Dependency Scan and Trivy scan') {
       steps {
+        parallel(
+          "Dependency Scan": {
           sh "mvn dependency-check:check"
+      },
+      "Trivy Scan": {
+        sh "bash trivy-docker-image-scan.sh"
       }
-      
-    }
+     )
+    }  
+   }
     stage('Docker Build and Push') {
       steps {
         withDockerRegistry([credentialsId: "docker-hub", url: ""]) {
