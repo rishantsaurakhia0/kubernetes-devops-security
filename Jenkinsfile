@@ -37,10 +37,13 @@ pipeline {
       steps {
         parallel(
           "Dependency Scan": {
-            sh "mvn dependency-check:check"
+          sh "mvn dependency-check:check"
       },
       "Trivy Scan": {
         sh "bash trivy-docker-image-scan.sh"
+      },
+      "OPA Conftest": {
+        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
       }
      )
     }  
@@ -49,7 +52,7 @@ pipeline {
       steps {
         withDockerRegistry([credentialsId: "docker-hub", url: ""]) {
           sh 'printenv'
-          sh 'sudo docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
+          sh 'docker build -t rishw/numeric-app:""$GIT_COMMIT"" .'
           sh 'docker push rishw/numeric-app:""$GIT_COMMIT""'
         }
       }
