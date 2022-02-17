@@ -100,7 +100,7 @@ pipeline {
   }
 
       stage('Integration Tests - DEV') {
-      steps {
+       steps {
         script {
           try {
             withKubeConfig([credentialsId: 'kubeconfig']) {
