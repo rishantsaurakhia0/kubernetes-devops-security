@@ -6,7 +6,7 @@ pipeline {
     containerName = "devsecops-container"
     serviceName = "devsecops-svc"
     imageName = "rishw/numeric-app:${GIT_COMMIT}"
-    applicationURL = "http://devsecops-demo.eastus.cloudapp.azure.com/"
+    applicationURL = "http://devsecops1-demo.eastus.cloudapp.azure.com"
     applicationURI = "/increment/99"
   }
 
@@ -19,44 +19,43 @@ pipeline {
       }
     }
 
-    stage('Unit Tests') {
+    stage('Unit Tests - JUnit and JaCoCo') {
       steps {
         sh "mvn test"
       }
-      post {
-        always {
-          junit 'target/surefire-reports/*.xml'
-          jacoco execPattern: 'target/jacoco.exec'
+    }
+
+    stage('SonarQube - SAST') {
+      steps {
+        withSonarQubeEnv('SonarQube') {
+          sh "mvn sonar:sonar \
+		              -Dsonar.projectKey=numeric-application \
+		              -Dsonar.host.url=http://devsecops-demo.eastus.cloudapp.azure.com:9000"
+        }
+        timeout(time: 2, unit: 'MINUTES') {
+          script {
+            waitForQualityGate abortPipeline: true
+          }
         }
       }
     }
-    stage('SonarQube(SAST)') {
-      steps {
-          withSonarQubeEnv('SonarQube') {
-          sh "mvn sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.host.url=http://devsecops1-demo.eastus.cloudapp.azure.com:9000 -Dsonar.login=53d261294f9fe3b4069e3dec24607604001d1063"
-          }
-      timeout(time: 2, unit: 'MINUTES') {
-        script {
-          waitForQualityGate abortPipeline: true
-        }
-      }
-     }
-    } 
-    stage('OWASP Dependency Scan and Trivy scan') {
+
+    stage('Vulnerability Scan - Docker') {
       steps {
         parallel(
           "Dependency Scan": {
-          sh "mvn dependency-check:check"
-      },
-      "Trivy Scan": {
-        sh "bash trivy-docker-image-scan.sh"
-      },
-      "OPA Conftest": {
-        sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
+            sh "mvn dependency-check:check"
+          },
+          "Trivy Scan": {
+            sh "bash trivy-docker-image-scan.sh"
+          },
+          "OPA Conftest": {
+            sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
+          }
+        )
       }
-     )
-    }  
-   }
+    }
+
     stage('Docker Build and Push') {
       steps {
         withDockerRegistry([credentialsId: "docker-hub", url: ""]) {
@@ -75,12 +74,15 @@ pipeline {
           },
           "Kubesec Scan": {
             sh "bash kubesec-scan.sh"
+          },
+          "Trivy Scan": {
+            sh "bash trivy-k8s-scan.sh"
           }
         )
       }
     }
 
-     stage('K8S Deployment - DEV') {
+    stage('K8S Deployment - DEV') {
       steps {
         parallel(
           "Deployment": {
@@ -97,10 +99,8 @@ pipeline {
       }
     }
 
-  }
-
-      stage('Integration Tests - DEV') {
-       steps {
+    stage('Integration Tests - DEV') {
+      steps {
         script {
           try {
             withKubeConfig([credentialsId: 'kubeconfig']) {
@@ -121,9 +121,9 @@ pipeline {
   post {
     always {
       junit 'target/surefire-reports/*.xml'
-      jacoco execPattern: 'target/jacoco.exec'
       dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
     }
+
     // success {
 
     // }
@@ -131,5 +131,6 @@ pipeline {
     // failure {
 
     // }
-   }
+  }
 
+}
